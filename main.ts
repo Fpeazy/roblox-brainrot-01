@@ -1,10 +1,20 @@
-// A working roblox-brainrot-01 entry (Node 22, standard library only): the game is this directory's Rojo
-// project, built into game.rbxl with `rojo build default.project.json --output game.rbxl`, and the program
-// hands it in. It copies game.rbxl, src/, screenshots/ and PLAY.json from beside this file to /output and
-// writes /output/dossier.json, the summary the judge reads, with the vendored make.fun library. A starting
-// point, not a winner: it is a grey square that moves with the arrow keys. Build your game, rebuild
-// game.rbxl, put your PNG or JPEG screenshots in screenshots/ (the first by name is the cover, and one of
-// them is the thumbnail you upload for your game on Roblox) and fill in PLAY.json with your published place.
+// Brainrot Collector: a 3D Roblox arena game for make.fun's roblox-brainrot-01
+// bounty (Node 22, standard library only). The game is this directory's Rojo
+// project, built into game.rbxl with `rojo build default.project.json --output game.rbxl`,
+// and the program hands it in. It copies game.rbxl, src/, screenshots/ and PLAY.json
+// from beside this file to /output and writes /output/dossier.json, the summary the
+// judge reads, with the vendored make.fun library.
+//
+// The game: six Italian-brainrot characters (Tung Tung Tung Sahur, Tralalero Tralala,
+// Bombardiro Crocodilo, Brr Brr Patapim, Lirili Larila, Chimpanzini Bananini) spawn
+// as 3D Part figures on coloured pads in a bright arena. Touch one to collect it for
+// points; it respawns on a random pad after a few seconds. 120-second rounds, a
+// live leaderboard and a winner announcement; WASD / arrows move, Shift sprints.
+//
+// Put your PNG or JPEG screenshots in screenshots/ (the first by name is the cover,
+// and one of them is the thumbnail you upload for your game on Roblox) and fill in
+// PLAY.json with your published place. Until PLAY.json names a real place the gate
+// refuses the entry, so this program warns about that instead of failing silently.
 //
 // Every name under /output starts with a letter, a digit or _ and holds only letters, digits, . _ and -: the
 // grader fails an entry whose output holds any other, so a file such as .gitkeep or .DS_Store copied in fails it.
@@ -13,7 +23,7 @@
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-roblox.ts';
@@ -26,6 +36,14 @@ const notDotted = (path: string): boolean => !basename(path).startsWith('.');
 
 copyFileSync(join(here, 'game.rbxl'), join(out, 'game.rbxl'));
 copyFileSync(join(here, 'PLAY.json'), join(out, 'PLAY.json'));
+
+// Warn (do not fail) when PLAY.json still names no published place: the gate
+// refuses such an entry until the place is published from Roblox Studio and
+// PLAY.json is filled in with its real place and universe ids.
+const play = JSON.parse(readFileSync(join(here, 'PLAY.json'), 'utf8')) as { place_id?: number; universe_id?: number };
+if (!play.place_id || !play.universe_id) {
+  console.warn('PLAY.json has no real place_id / universe_id yet: publish the place from Roblox Studio and fill it in before submitting.');
+}
 cpSync(join(here, 'src'), join(out, 'src'), { recursive: true, filter: notDotted });
 mkdirSync(join(out, 'screenshots'), { recursive: true });
 if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true, filter: notDotted });
@@ -37,3 +55,6 @@ writeFileSync(
   join(out, 'dossier.json'),
   buildDossier(out, { text_max_bytes: 65536, screenshots: { max: 4, max_bytes: 262144 }, max_instances: 500000, scripts_max_source_bytes: 8388608, scripts_max_path_chars: 1048576 }),
 );
+
+// One line of proof the run did what it says: the place size and the dossier size.
+console.log(`brainrot-collector: game.rbxl ${statSync(join(out, 'game.rbxl')).size} bytes, dossier.json ${statSync(join(out, 'dossier.json')).size} bytes in ${out}`);
